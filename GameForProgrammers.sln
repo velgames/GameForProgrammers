@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C# Express 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameWorld", "GameWorld\GameWorld.csproj", "{32FA08D6-97BA-48F1-8F25-06023B5B53BA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameWorldPlayer", "GameWorldPlayer\GameWorldPlayer.csproj", "{95FD609A-B288-460E-907F-FE71A372AEDC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{32FA08D6-97BA-48F1-8F25-06023B5B53BA}.Debug|x86.ActiveCfg = Debug|x86
+		{32FA08D6-97BA-48F1-8F25-06023B5B53BA}.Debug|x86.Build.0 = Debug|x86
+		{32FA08D6-97BA-48F1-8F25-06023B5B53BA}.Release|x86.ActiveCfg = Release|x86
+		{32FA08D6-97BA-48F1-8F25-06023B5B53BA}.Release|x86.Build.0 = Release|x86
+		{95FD609A-B288-460E-907F-FE71A372AEDC}.Debug|x86.ActiveCfg = Debug|x86
+		{95FD609A-B288-460E-907F-FE71A372AEDC}.Debug|x86.Build.0 = Debug|x86
+		{95FD609A-B288-460E-907F-FE71A372AEDC}.Release|x86.ActiveCfg = Release|x86
+		{95FD609A-B288-460E-907F-FE71A372AEDC}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
