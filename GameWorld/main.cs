@@ -17,95 +17,109 @@ namespace GameWorld
         const string configFileName = "config.ini";
         static int tickCount;
         static int tickCurrent;
+        static int worldWidthSize;
+        static int worldHeightSize;
 
         //-------NetWork Config----
-        static int playersCount;
 
 
         //-------------------------
 
-        static List<Player> players;
         static Socket netCore;
         static StreamWriter logWriter;
 
+        //-------- Game vars
+        static GameState world; //Global state variable describes current game world state
+
         static void Run()
         {
-            logWriteTop();
-
+            logTopWriter();
+            tDebug();
 
             for (tickCurrent = 0; tickCurrent < tickCount; tickCurrent++)
             {
                 // talk with Core
-                CalculatePhysics();
-                LogWriter();
+                calculatePhysics();
+                logStateWriter();
             }
+
+            logBotWriter();
         }
 
         /// <summary>
         /// Send to network data
         /// </summary>
         /// <returns></returns>
-        static bool SendToNetWork(string msg)
+        static bool sendToNetWork(string msg)
         {
             return true;
         }
 
-        static string GetFromNetWork()
+        static string getFromNetWork()
         {
 
             return "NULL";
         }
 
-        static void CalculatePhysics()
+        static void calculatePhysics()
         {
 
             //move all players
-            for (int i = 0; i < players.Count; i++)
+
+            for (int i = 0; i < world.players.Count; i++)
             {
-                players[i].move();
+                if (world.players[i].position.x >= worldWidthSize - world.players[i].radius || world.players[i].position.x <= 0 + world.players[i].radius)
+                {
+                    world.players[i].currentSpeed.x *= -1;
+                }
+                world.players[i].move();
             }
+
+
+
 
         }
 
-        static bool logWriteTop()
+        static bool logTopWriter()
         {
+            logWriter.WriteLine("[START CONFIG]");
             logWriter.WriteLine("tickCount " + tickCount);
-            
-            logWriter.WriteLine("playersCount " + playersCount);
-            for (int i = 0; i < playersCount; i++)
-            {
-                logWriter.WriteLine(players[i].name); //name
-                logWriter.WriteLine(players[i].position.x + " " + players[i].position.y); // position
-                logWriter.WriteLine(players[i].radius); // radius
-                logWriter.WriteLine(players[i].ID); // ID
-            }
+            logWriter.WriteLine("playersCount " + world.players.Count);
+            logWriter.WriteLine("playersCount " + world.players.Count);
+            logWriter.WriteLine("worldWidthSize " + worldWidthSize);
+            logWriter.WriteLine("worldHeightSize " + worldHeightSize);
+            logWriter.WriteLine("[END]");
+            logWriter.WriteLine("[GAME STATES]");
             return true;
         }
 
-        static bool LogWriter()
+        static bool logBotWriter()
         {
-            Console.WriteLine("tick = " + (tickCurrent+1));
-            logWriter.WriteLine("tick = " + (tickCurrent + 1));
-            logWriter.Flush();
-            //Thread.Sleep(1);
+            logWriter.WriteLine("[END]");
+            return true;
+        }
+
+        static bool logStateWriter()
+        {
+            logWriter.WriteLine(GameState.GetState(world));
 
             return true;
         }
 
-        static bool Disconnect()
+        static bool disconnect()
         {
 
             return true;
         }
 
-        static bool ConnectToCore()
+        static bool connectToCore()
         {
             // Connect to GameCore
 
             return true;
         }
 
-        static bool ConfigWriteDefault()
+        static bool configWriteDefault()
         {
             StreamWriter off = new StreamWriter(configFileName);
             off.Write("#Its automaticaly generated config file, edit it if you need\r\nlogFileName gameLog.txt\r\n");
@@ -113,11 +127,11 @@ namespace GameWorld
             return true;
         }
 
-        static bool ConfigLoad()
+        static bool configLoad()
         {
             if(!File.Exists(configFileName))
             {
-                ConfigWriteDefault();
+                configWriteDefault();
             }
             StreamReader inf = new StreamReader(configFileName);
             while(!inf.EndOfStream)
@@ -148,21 +162,25 @@ namespace GameWorld
             return true;
         }
 
+        static void tDebug()
+        {
+            world.players[0].currentSpeed.x = 10;
+            world.players[0].position.x = 100;
+            world.players[0].position.y = 100;
+        }
+
         static bool Init()
         {
-            playersCount = 1;       ///////////NET WORK///////////
+            int playersCount = 1;       ///////////NET WORK///////////
+            int playerRadius = 10;      ///////////NET WORK///////////
+            tickCurrent = 0;            ///////////NET WORK///////////
+            tickCount = 3000;           ///////////NET WORK///////////
+            worldHeightSize = 768;
+            worldWidthSize = 1024;
 
-            players = new List<Player>();
-            for (int i = 0; i < playersCount; i++)
-            {
-                players.Add(new Player(new GamePoint(50, 50), 10, "Man", i));
-            }
-            tickCurrent = 0;
-            tickCount = 3000;
+            world = new GameState(playersCount, playerRadius);
 
-
-
-            if (!ConfigLoad())
+            if (!configLoad())
             {
                 return false;
             }
@@ -189,6 +207,7 @@ namespace GameWorld
 
             Run();
 
+            closer();
             Console.WriteLine("Compleated");
             Thread.Sleep(1000);
         }
