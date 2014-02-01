@@ -5,8 +5,10 @@ using System.Text;
 using GameWorld.GameObjects;
 using GameWorld.GameTypes;
 using System.IO;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+
 
 namespace GameWorld
 {
@@ -21,7 +23,11 @@ namespace GameWorld
         static int worldHeightSize;
 
         //-------NetWork Config----
-
+        static Socket handler;
+        static string IP;
+        static int port; //config
+        static IPEndPoint ipEndPoint;
+        static bool clientConnected;
 
         //-------------------------
 
@@ -74,10 +80,6 @@ namespace GameWorld
                 }
                 world.players[i].move();
             }
-
-
-
-
         }
 
         static bool logTopWriter()
@@ -114,8 +116,25 @@ namespace GameWorld
 
         static bool connectToCore()
         {
-            // Connect to GameCore
-
+            try
+            {
+                // Connect to GameCore
+                cout("connecting to SynchroCore...");
+                String host = Dns.GetHostName();
+                IPAddress ipAddr = Dns.GetHostByName(host).AddressList[0];
+                ipEndPoint = new IPEndPoint(ipAddr, port);
+                handler = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                handler.Connect(ipEndPoint);
+                byte[] msg = Encoding.ASCII.GetBytes("world");
+                handler.Send(msg);
+                int c = handler.Receive(msg);
+                cout(Encoding.ASCII.GetString(msg, 0, c));
+            }
+            catch (Exception ex)
+            {
+                cout("Connection filed");
+                return false;
+            }
             return true;
         }
 
@@ -171,6 +190,8 @@ namespace GameWorld
 
         static bool Init()
         {
+            clientConnected = false;
+            port = 11000;
             int playersCount = 1;       ///////////NET WORK///////////
             int playerRadius = 10;      ///////////NET WORK///////////
             tickCurrent = 0;            ///////////NET WORK///////////
@@ -179,37 +200,57 @@ namespace GameWorld
             worldWidthSize = 1024;
 
             world = new GameState(playersCount, playerRadius);
-
+            cout("loading config");
             if (!configLoad())
             {
                 return false;
+                cout("config load filed");
             }
 
             logWriter = new StreamWriter(logFileName,false);
 
+            if (!connectToCore())
+            {
+                return false;
+            }
+
             return true;
         }
 
-        static void closer()
+        static void shutdown()
         {
             logWriter.Close();
+            if (clientConnected)
+            {
+                handler.Shutdown(SocketShutdown.Both);
+                handler.Close();
+            }
+        }
+        
+        static bool cout(string msg)
+        {
+            Console.WriteLine(msg);
+            // logwrite(msg);
+            return true;
         }
 
         static void Main(string[] args)
         {
-            //Start up point
-            //Init
-
+            cout("GameWorld starting...");
+            cout("Initing...");
             if (!Init())
             {
                 return;
             }
 
+
+            cout("Starting work");
             Run();
 
-            closer();
-            Console.WriteLine("Compleated");
-            Thread.Sleep(1000);
+            shutdown();
+            cout("Compleated");
+            cout("waiting 10 secs and exit..");
+            Thread.Sleep(10000);
         }
     }
 }
