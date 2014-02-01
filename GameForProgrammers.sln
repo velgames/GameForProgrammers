@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameWorld", "GameWorld\Game
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameWorldPlayer", "GameWorldPlayer\GameWorldPlayer.csproj", "{95FD609A-B288-460E-907F-FE71A372AEDC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SynchroCore", "SynchroCore\SynchroCore.csproj", "{67BF03D2-E68E-4799-8769-67A47DB717D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -19,6 +21,10 @@ Global
 		{95FD609A-B288-460E-907F-FE71A372AEDC}.Debug|x86.Build.0 = Debug|x86
 		{95FD609A-B288-460E-907F-FE71A372AEDC}.Release|x86.ActiveCfg = Release|x86
 		{95FD609A-B288-460E-907F-FE71A372AEDC}.Release|x86.Build.0 = Release|x86
+		{67BF03D2-E68E-4799-8769-67A47DB717D1}.Debug|x86.ActiveCfg = Debug|x86
+		{67BF03D2-E68E-4799-8769-67A47DB717D1}.Debug|x86.Build.0 = Debug|x86
+		{67BF03D2-E68E-4799-8769-67A47DB717D1}.Release|x86.ActiveCfg = Release|x86
+		{67BF03D2-E68E-4799-8769-67A47DB717D1}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

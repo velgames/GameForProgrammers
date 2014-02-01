@@ -17,7 +17,6 @@ namespace GameWorld.GameTypes
             {
                 players.Add(new Player(new GamePoint(0,0),playerRadius,"Player"+i.ToString(),i));
             }
-
         }
 
         public GameState(string str, int playersCount)
