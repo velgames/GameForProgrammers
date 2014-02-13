@@ -69,6 +69,7 @@ namespace SynchroCore
             if (msg == "world")
             {
                 world = client;
+                world.SendTimeout = 5;
                 worldConnected = true;
                 cout("world connected");
             }
@@ -82,9 +83,58 @@ namespace SynchroCore
                 cout("WTF IS CONNECTED TO ME??!!!!! HEEELLLPPP!!! ITS OMG!!!!!");
             }
 
-            listener.Shutdown(SocketShutdown.Both);
+            //Send to world init data
+            sendToWorld("init");
+            cout( world.SendTimeout.ToString());
+            initWorld();
+
+
+            //listener.Shutdown(SocketShutdown.Both);
             listener.Close();
             return true;
+        }
+
+        static bool sendToWorld(string msg)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(msg);
+            world.Send(bytes);
+            Thread.Sleep(100);
+            return true;
+        }
+
+        static string receiveByWorld()
+        {
+            byte[] bytes = new byte[1024];
+            int c = world.Receive(bytes);
+            return Encoding.ASCII.GetString(bytes, 0, c);
+        }
+
+        static bool initWorld()
+        {
+            //send vars
+            sendToWorld(playerCount.ToString());
+            sendToWorld(tickCount.ToString());
+            //Init players
+///// Need replace to talk with bots by network////////////////////////////////////////////---------------!!!!!!!!!!!!!!!!!!
+            for (int i = 0; i < playerCount; i++)
+            {
+                sendToWorld("player1");
+                sendToWorld((i+1*15).ToString());
+                sendToWorld("200");
+                sendToWorld("320");
+                cout("player1 sent");
+            }
+
+
+            return true;
+        }
+
+        static void worker()
+        {
+            while (tickCurrent < tickCount)
+            {
+                
+            }
         }
 
 
@@ -111,7 +161,7 @@ namespace SynchroCore
         static bool configWriteDefault()
         {
             StreamWriter off = new StreamWriter(configFileName);
-            off.Write("#Its automaticaly generated config file, edit it if you need\r\nlogFileName gameLog.txt\r\n");
+            off.Write("#Its automaticaly generated config file, edit it if you need\r\nlogFileName synchroCore.log\r\ntickCount 2000\r\nplayerCount 1\r\n");
             off.Close();
             return true;
         }
@@ -143,6 +193,18 @@ namespace SynchroCore
                     if (str[0] == "logFileName")
                     {
                         logFileName = str[1];
+                        continue;
+                    }
+
+                    if (str[0] == "tickCount")
+                    {
+                        tickCount =Convert.ToInt32(str[1]);
+                        continue;
+                    }
+                    
+                    if (str[0] == "playerCount")
+                    {
+                        playerCount = Convert.ToInt32(str[1]);
                         continue;
                     }
                 }

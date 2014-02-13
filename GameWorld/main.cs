@@ -21,6 +21,8 @@ namespace GameWorld
         static int tickCurrent;
         static int worldWidthSize;
         static int worldHeightSize;
+        static int playerRadius;
+        static int playersCount;
 
         //-------NetWork Config----
         static Socket handler;
@@ -56,15 +58,19 @@ namespace GameWorld
         /// Send to network data
         /// </summary>
         /// <returns></returns>
-        static bool sendToNetWork(string msg)
+        static bool sendMsg(string msg)
         {
+            byte[] bytes = Encoding.ASCII.GetBytes(msg);
+            handler.Send(bytes);
+            Thread.Sleep(100);
             return true;
         }
 
-        static string getFromNetWork()
+        static string receiveMsg()
         {
-
-            return "NULL";
+            byte[] bytes = new byte[1024];
+            int c = handler.Receive(bytes);
+            return Encoding.ASCII.GetString(bytes, 0, c);
         }
 
         static void calculatePhysics()
@@ -125,10 +131,8 @@ namespace GameWorld
                 ipEndPoint = new IPEndPoint(ipAddr, port);
                 handler = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 handler.Connect(ipEndPoint);
-                byte[] msg = Encoding.ASCII.GetBytes("world");
-                handler.Send(msg);
-                int c = handler.Receive(msg);
-                cout(Encoding.ASCII.GetString(msg, 0, c));
+                sendMsg ("world");
+                cout(receiveMsg());
             }
             catch (Exception ex)
             {
@@ -192,14 +196,14 @@ namespace GameWorld
         {
             clientConnected = false;
             port = 11000;
-            int playersCount = 1;       ///////////NET WORK///////////
-            int playerRadius = 10;      ///////////NET WORK///////////
-            tickCurrent = 0;            ///////////NET WORK///////////
+            playersCount = 1;       ///////////NET WORK///////////
+            playerRadius = 10;      
+            tickCurrent = 0;            
             tickCount = 3000;           ///////////NET WORK///////////
             worldHeightSize = 768;
             worldWidthSize = 1024;
 
-            world = new GameState(playersCount, playerRadius);
+            world = new GameState(0, playerRadius); //debug
             cout("loading config");
             if (!configLoad())
             {
@@ -213,8 +217,36 @@ namespace GameWorld
             {
                 return false;
             }
+            initNetwork();
 
             return true;
+        }
+
+
+        /// <summary>
+        /// Initing network config and init objects
+        /// </summary>
+        static void initNetwork()
+        {
+            //Init network vars
+            playersCount = Convert.ToInt32(receiveMsg());
+            cout("playersCount = " + playersCount.ToString());
+            tickCount = Convert.ToInt32(receiveMsg());
+            cout("tickCount = " + tickCount.ToString());
+            
+            //Init players
+            for(int i=0;i<playersCount;i++)
+            {
+                string name = receiveMsg();
+                int id = Convert.ToInt32(receiveMsg());
+                int x = Convert.ToInt32(receiveMsg());
+                int y = Convert.ToInt32(receiveMsg());
+                world.players.Add(new Player(new GamePoint(x,y),playerRadius,name,id));
+                cout("player '"+name+"' with id='"+id.ToString() + "' added ");
+            }
+
+            //cout("playersCount = " + playersCount.ToString());
+            cout("tickCount = " + tickCount.ToString());
         }
 
         static void shutdown()
