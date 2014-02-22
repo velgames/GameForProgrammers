@@ -17,4 +17,19 @@ namespace GameWorld.GameTypes
         }
 
     }
+
+    public class GameDPoint
+    {
+        public double x;
+        public double y;
+
+        public GameDPoint(double _x, double _y)
+        {
+            x = _x;
+            y = _y;
+        }
+
+    }
+
+
 }

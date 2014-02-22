@@ -9,14 +9,16 @@ namespace GameWorld.GameObjects
     public class Player
     {
         public GamePoint position;
+        public GameDPoint acceleration;
         public int radius;
-        public GamePoint currentSpeed;
+        public GameDPoint currentSpeed;
         public string name;
         public int ID;
 
         public Player(GamePoint _position,int _radius,string _name,int _ID)
         {
-            currentSpeed = new GamePoint(0, 0);
+            currentSpeed = new GameDPoint(0, 0);
+            acceleration = new GameDPoint(0, 0);
             position = _position;
             radius = _radius;
             name = _name;
@@ -26,8 +28,12 @@ namespace GameWorld.GameObjects
 
         public void move()
         {
-            position.x += currentSpeed.x;
-            position.y += currentSpeed.y;
+            currentSpeed.x += acceleration.x;
+            currentSpeed.y += acceleration.y;
+            position.x += (int) currentSpeed.x;
+            position.y += (int) currentSpeed.y;
+            acceleration.x = 0;
+            acceleration.y = 0;
         }
     }
 }

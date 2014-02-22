@@ -14,7 +14,7 @@ namespace GameWorld
 {
     class main
     {
-        //-------CONFIG VARES------
+        //-------CONFIG VARS------
         static string logFileName;
         const string configFileName = "config.ini";
         static int tickCount;
@@ -39,41 +39,96 @@ namespace GameWorld
         //-------- Game vars
         static GameState world; //Global state variable describes current game world state
 
-        static void Run()
+        static bool Run()
         {
             logTopWriter();
             tDebug();
-
-            for (tickCurrent = 0; tickCurrent < tickCount; tickCurrent++)
+            if (receiveMsg() != "START")
             {
-                // talk with Core
-                calculatePhysics();
+                sendMsg("EXIT");
+                cout("'START' is not received");
+                return false;
+            }
+            bool needWork = true;
+            while (needWork)
+            {
+                string msg = receiveMsg();
+                if (msg == "END")
+                {
+                    break;
+                }
+                if (!applyAction(msg))
+                {
+                    //somthing happends, need write to error log
+                    sendMsg("EXIT");
+                    cout("applyAction fail '"+ msg +"'");
+                    return false;
+                }
+                
+                physics();
                 logStateWriter();
+                sendMsg("NEXT");
             }
 
             logBotWriter();
-        }
-
-        /// <summary>
-        /// Send to network data
-        /// </summary>
-        /// <returns></returns>
-        static bool sendMsg(string msg)
-        {
-            byte[] bytes = Encoding.ASCII.GetBytes(msg);
-            handler.Send(bytes);
-            Thread.Sleep(100);
             return true;
         }
 
-        static string receiveMsg()
+        static bool applyAction(string command)
         {
-            byte[] bytes = new byte[1024];
-            int c = handler.Receive(bytes);
-            return Encoding.ASCII.GetString(bytes, 0, c);
+            string[] commands = command.Split(';');
+            for (int i = 0; i < commands.Length; i++)
+            {
+                string[] str = commands[0].Split(' ');
+                
+                switch (str[1]) // analyse command
+                {
+                    case "MOVETO":
+                        int id = Convert.ToInt32(str[0]); // get id of player who is do action
+                        double x = Convert.ToInt32(str[2]);
+                        double y = Convert.ToInt32(str[3]);
+                        int k = 0;
+                        // search in array for player with received id
+                        for (int j = 0; j < playersCount; j++)
+                        {
+                            if (world.players[j].ID == id)
+                            {
+                                k = j;
+                                break;
+                            }
+                        }
+
+                        if (world.players[k].position.x <= x)
+                        {
+                            world.players[k].acceleration.x = Math.Cos(Math.Atan(Math.Abs(world.players[k].position.y - y) / Math.Abs(world.players[k].position.x - x))) * Physics.playerAccelerate;
+                        }
+                        else
+                        {
+                            world.players[k].acceleration.x = Math.Cos(Math.Atan(Math.Abs(world.players[k].position.y - y) / Math.Abs(world.players[k].position.x - x)) + Math.PI) * Physics.playerAccelerate;
+                        }
+                        if (world.players[k].position.y <= y)
+                        {
+                            world.players[k].acceleration.y = Math.Sin(Math.Atan(Math.Abs(world.players[k].position.y - y) / Math.Abs(world.players[k].position.x - x))) * Physics.playerAccelerate;
+                        }
+                        else
+                        {
+                            world.players[k].acceleration.y = Math.Sin(Math.Atan(Math.Abs(world.players[k].position.y - y) / Math.Abs(world.players[k].position.x - x)) + Math.PI) * Physics.playerAccelerate;
+                        }
+
+                        cout("player" + world.players[k].name + "moving to ("+x.ToString() + ";" + y.ToString()+")");
+                        break;
+
+                    default:
+                        
+                        return false;
+                        
+                }
+            }
+
+            return true;
         }
 
-        static void calculatePhysics()
+        static void physics()
         {
 
             //move all players
@@ -88,31 +143,6 @@ namespace GameWorld
             }
         }
 
-        static bool logTopWriter()
-        {
-            logWriter.WriteLine("[START CONFIG]");
-            logWriter.WriteLine("tickCount " + tickCount);
-            logWriter.WriteLine("playersCount " + world.players.Count);
-            logWriter.WriteLine("playersCount " + world.players.Count);
-            logWriter.WriteLine("worldWidthSize " + worldWidthSize);
-            logWriter.WriteLine("worldHeightSize " + worldHeightSize);
-            logWriter.WriteLine("[END]");
-            logWriter.WriteLine("[GAME STATES]");
-            return true;
-        }
-
-        static bool logBotWriter()
-        {
-            logWriter.WriteLine("[END]");
-            return true;
-        }
-
-        static bool logStateWriter()
-        {
-            logWriter.WriteLine(GameState.GetState(world));
-
-            return true;
-        }
 
         static bool disconnect()
         {
@@ -211,14 +241,16 @@ namespace GameWorld
                 cout("config load filed");
             }
 
-            logWriter = new StreamWriter(logFileName,false);
-
             if (!connectToCore())
             {
                 return false;
             }
-            initNetwork();
 
+            if (!initNetwork())
+            {
+                return false;
+            }
+            logWriter = new StreamWriter(logFileName,false);
             return true;
         }
 
@@ -226,27 +258,33 @@ namespace GameWorld
         /// <summary>
         /// Initing network config and init objects
         /// </summary>
-        static void initNetwork()
+        static bool initNetwork()
         {
-            //Init network vars
-            playersCount = Convert.ToInt32(receiveMsg());
-            cout("playersCount = " + playersCount.ToString());
-            tickCount = Convert.ToInt32(receiveMsg());
-            cout("tickCount = " + tickCount.ToString());
-            
-            //Init players
-            for(int i=0;i<playersCount;i++)
+            try
             {
-                string name = receiveMsg();
-                int id = Convert.ToInt32(receiveMsg());
-                int x = Convert.ToInt32(receiveMsg());
-                int y = Convert.ToInt32(receiveMsg());
-                world.players.Add(new Player(new GamePoint(x,y),playerRadius,name,id));
-                cout("player '"+name+"' with id='"+id.ToString() + "' added ");
-            }
+                //Init network vars
+                playersCount = Convert.ToInt32(receiveMsg());
+                cout("playersCount = " + playersCount.ToString());
+                tickCount = Convert.ToInt32(receiveMsg());
+                cout("tickCount = " + tickCount.ToString());
 
-            //cout("playersCount = " + playersCount.ToString());
-            cout("tickCount = " + tickCount.ToString());
+                //Init players
+                for (int i = 0; i < playersCount; i++)
+                {
+                    string name = receiveMsg();
+                    int id = Convert.ToInt32(receiveMsg());
+                    int x = Convert.ToInt32(receiveMsg());
+                    int y = Convert.ToInt32(receiveMsg());
+                    world.players.Add(new Player(new GamePoint(x, y), playerRadius, name, id));
+                    cout("player '" + name + "' with id='" + id.ToString() + "' added ");
+                }
+                sendMsg("OK");
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+            return true;
         }
 
         static void shutdown()
@@ -275,14 +313,67 @@ namespace GameWorld
                 return;
             }
 
-
             cout("Starting work");
-            Run();
+            if (!Run())
+            {
+                cout("run fail");
+            }
+            else
+            {
+                cout("Compleated");
+            }
 
             shutdown();
-            cout("Compleated");
-            cout("waiting 10 secs and exit..");
-            Thread.Sleep(10000);
+
+            cout("press enter to exit..");
+            Console.ReadLine();
+        }
+
+
+        /// <summary>
+        /// Send to network data
+        /// </summary>
+        /// <returns></returns>
+        static bool sendMsg(string msg)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(msg);
+            handler.Send(bytes);
+            Thread.Sleep(100);
+            return true;
+        }
+
+        static string receiveMsg()
+        {
+            byte[] bytes = new byte[1024];
+            int c = handler.Receive(bytes);
+            return Encoding.ASCII.GetString(bytes, 0, c);
+        }
+
+
+        static bool logTopWriter()
+        {
+            logWriter.WriteLine("[START CONFIG]");
+            logWriter.WriteLine("tickCount " + tickCount);
+            logWriter.WriteLine("playersCount " + world.players.Count);
+            logWriter.WriteLine("playersCount " + world.players.Count);
+            logWriter.WriteLine("worldWidthSize " + worldWidthSize);
+            logWriter.WriteLine("worldHeightSize " + worldHeightSize);
+            logWriter.WriteLine("[END]");
+            logWriter.WriteLine("[GAME STATES]");
+            return true;
+        }
+
+        static bool logBotWriter()
+        {
+            logWriter.WriteLine("[END]");
+            return true;
+        }
+
+        static bool logStateWriter()
+        {
+            logWriter.WriteLine(GameState.GetState(world));
+
+            return true;
         }
     }
 }

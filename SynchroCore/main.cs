@@ -85,9 +85,12 @@ namespace SynchroCore
 
             //Send to world init data
             sendToWorld("init");
-            cout( world.SendTimeout.ToString());
-            initWorld();
-
+            if (!initWorld())
+            {
+                listener.Close();
+                return false;
+            }
+            worker();
 
             //listener.Shutdown(SocketShutdown.Both);
             listener.Close();
@@ -125,16 +128,29 @@ namespace SynchroCore
                 cout("player1 sent");
             }
 
-
+            if(receiveByWorld() != "OK")
+            {
+                return false;
+            }
             return true;
         }
 
-        static void worker()
+        static bool worker()
         {
+            sendToWorld("START");
             while (tickCurrent < tickCount)
             {
-                
+                sendToWorld("15 MOVETO 100 " + (300+tickCurrent).ToString()); // debug string
+                cout("sent to world '15 MOVETO 100 " + (300 + tickCurrent).ToString()+"'"); // debug
+                if (receiveByWorld() == "EXIT")
+                {
+                    cout("world sent me 'EXIT'");
+                    return false;
+                }
+                tickCurrent++;
             }
+            sendToWorld("END");
+            return true;
         }
 
 
@@ -250,8 +266,8 @@ namespace SynchroCore
 
 
 
-            cout("Server stoped. Exit after 10 secs.");
-            Thread.Sleep(10000);
+            cout("Server stoped. press enter to exit.");
+            Console.ReadLine();
         }
     }
 }
