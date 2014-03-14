@@ -32,9 +32,11 @@ namespace SynchroCore
         static IPEndPoint ipEndPoint;
         static Socket listener;
 
-        static List<Socket> players;
+        //static List<Socket> players;
+        static Socket botServer;
         static Socket world;
         static bool worldConnected;
+        static bool botServerConnected;
         //-----------------------------------
 
         /// <summary>
@@ -60,27 +62,34 @@ namespace SynchroCore
             listener.Bind(ipEndPoint);
             listener.Listen(10);
             cout("Server started at " + IP + ":"+port.ToString());
-            
-            Socket client = listener.Accept();
 
-            byte[] buf = new byte[20];
-            int count = client.Receive(buf);
-            string msg = Encoding.ASCII.GetString(buf,0,count);
-            if (msg == "world")
+            while (!botServerConnected && !worldConnected)
             {
-                world = client;
-                world.SendTimeout = 5;
-                worldConnected = true;
-                cout("world connected");
-            }
-            else
-            {
-                if (msg == "bot")
+                Socket client = listener.Accept();
+
+                byte[] buf = new byte[20];
+                int count = client.Receive(buf);
+                string msg = Encoding.ASCII.GetString(buf, 0, count);
+                if (msg == "world")
                 {
-                    players.Add(client);
-                    cout("bot connected");
+                    world = client;
+                    world.SendTimeout = 5;
+                    worldConnected = true;
+                    cout("world connected");
                 }
-                cout("WTF IS CONNECTED TO ME??!!!!! HEEELLLPPP!!! ITS OMG!!!!!");
+                else
+                {
+                    if (msg == "BotServer")
+                    {
+                        botServer = client;
+                        botServerConnected = true;
+                        cout("BotServer connected");
+                    }
+                    else
+                    {
+                        cout("WTF IS CONNECTED TO ME??!!!!! HEEELLLPPP!!! ITS OMG!!!!!");
+                    }
+                }
             }
 
             //Send to world init data
@@ -105,10 +114,25 @@ namespace SynchroCore
             return true;
         }
 
+        static bool sendToBotServer(string msg)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(msg);
+            botServer.Send(bytes);
+            Thread.Sleep(100);
+            return true;
+        }
+
         static string receiveByWorld()
         {
             byte[] bytes = new byte[1024];
             int c = world.Receive(bytes);
+            return Encoding.ASCII.GetString(bytes, 0, c);
+        }
+
+        static string receiveByBotServer()
+        {
+            byte[] bytes = new byte[1024];
+            int c = botServer.Receive(bytes);
             return Encoding.ASCII.GetString(bytes, 0, c);
         }
 
@@ -160,7 +184,7 @@ namespace SynchroCore
         /// <returns>bool</returns>
         static bool initDefault()
         {
-            players = new List<Socket>();
+            botServerConnected = false;
             worldConnected = false;
             configFileName = "SynchroCoreConfig.ini";
             logFileName = "SynchroCoreLog.log";
