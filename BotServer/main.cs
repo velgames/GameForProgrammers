@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
+using DefBot;
 
 namespace BotServer
 {
@@ -20,10 +21,11 @@ namespace BotServer
         static int port; //config
         static IPEndPoint ipEndPoint;
         static bool clientConnected;
+        static Bot[] Bots;
         //----------------------------
 
         // Net Init vars ===================
-        static int playerCount;
+        static int BotCount;
 
 
 
@@ -56,6 +58,14 @@ namespace BotServer
             return true;
         }
 
+        static bool Init()
+        {
+            BotCount = 1;
+
+            Bots = new Bot[BotCount];
+
+            return true;
+        }
 
         static void Main(string[] args)
         {
