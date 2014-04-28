@@ -8,6 +8,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using Definitions;
 
 
 namespace GameWorld
@@ -146,7 +147,6 @@ namespace GameWorld
 
         static bool disconnect()
         {
-
             return true;
         }
 
@@ -161,7 +161,7 @@ namespace GameWorld
                 ipEndPoint = new IPEndPoint(ipAddr, port);
                 handler = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 handler.Connect(ipEndPoint);
-                sendMsg ("world");
+                sendMsg (Vals.Net_Name_GameWorld);
                 cout(receiveMsg());
             }
             catch (Exception ex)

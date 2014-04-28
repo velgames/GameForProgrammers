@@ -8,6 +8,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Definitions;
 
 namespace SynchroCore
 {
@@ -70,7 +71,7 @@ namespace SynchroCore
                 byte[] buf = new byte[20];
                 int count = client.Receive(buf);
                 string msg = Encoding.ASCII.GetString(buf, 0, count);
-                if (msg == "world")
+                if (msg == Vals.Net_Name_GameWorld)
                 {
                     world = client;
                     world.SendTimeout = 5;
@@ -79,7 +80,7 @@ namespace SynchroCore
                 }
                 else
                 {
-                    if (msg == "BotServer")
+                    if (msg == Vals.Net_Name_BotServer)
                     {
                         botServer = client;
                         botServerConnected = true;

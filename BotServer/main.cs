@@ -26,8 +26,12 @@ namespace BotServer
         
         //----------------------------
         // Config and vars
+        const string configFileName = "botServerConfig.conf";
+        const string BotPathsFilePath = "bots.ini";
+        
         static List<Bot> Bots;
         static List<string> dllBotPaths;
+
         //----------------------------
         // Net Init vars ===================
         static int BotCount;
@@ -46,7 +50,7 @@ namespace BotServer
                 ipEndPoint = new IPEndPoint(ipAddr, port);
                 handler = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 handler.Connect(ipEndPoint);
-                sendMsg("BotServer");
+                sendMsg(Vals.Net_Name_BotServer);
                 cout(receiveMsg());
             }
             catch (Exception ex)
@@ -69,14 +73,41 @@ namespace BotServer
             Bots = new List<Bot>();
             BotCount = 1;
             dllBotPaths.Add("MyBot.dll");
-            
-            
-            botLoad();
-            
 
+            botLoad();
+
+            connectToCore();
+            
             return true;
         }
 
+        static void readBotPaths()
+        {
+            if (!File.Exists(BotPathsFilePath))
+            {
+                StreamWriter off = new StreamWriter(BotPathsFilePath);
+                off.WriteLine("#there bot.dll file names you want to play");
+            }
+            StreamReader str = new StreamReader(BotPathsFilePath);
+            while (!str.EndOfStream)
+            {
+                string path = str.ReadLine();
+                if (path.Length > 4)
+                {
+                    if (path[0] != '#')
+                    {
+                        dllBotPaths.Add(path);
+                    }
+                }
+            }
+            str.Close();
+        }
+
+
+        /// <summary>
+        /// Add bot dll files and create objects of user classes
+        /// </summary>
+        /// <returns> true or false depend on successful operation</returns>
         static bool botLoad()
         {
             for (int i = 0; i < dllBotPaths.Count; i++)
@@ -103,6 +134,7 @@ namespace BotServer
                     {
                         cout("filed load dll : out of range");
                     }
+                    return false;
                 }
             }
 
@@ -116,6 +148,48 @@ namespace BotServer
             Console.ReadLine();
         }
 
+        static bool configWriteDefault()
+        {
+            StreamWriter off = new StreamWriter(configFileName);
+            off.Write("#Its automaticaly generated config file, edit it if you need\r\nBotDllPath MyBot.dll\r\n");
+            off.Close();
+            return true;
+        }
+
+        static bool configLoad()
+        {
+            if (!File.Exists(configFileName))
+            {
+                configWriteDefault();
+            }
+            StreamReader inf = new StreamReader(configFileName);
+            while (!inf.EndOfStream)
+            {
+                string line = inf.ReadLine();
+                string[] str = line.Split(' ');
+                try
+                {
+                    if (str[0][0] == '#')
+                    {
+                        // Comentaries
+                        continue;
+                    }
+
+                    if (str[0] == "BotDllPath")
+                    {
+                        dllBotPaths.Add(str[1]);
+                        continue;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Filed load config\nWays to resolve it \n1)delete config file and programm create new valid config file\n2)Check file to valid\n");
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
 
         /// <summary>
@@ -145,3 +219,19 @@ namespace BotServer
         }
     }
 }
+
+
+
+
+//-------------------------------------------------------------------\\\\\---------------------/////--
+//--------------------------------------------------------------------\\\\\-------------------/////---
+//---------------------------------------------------------------------\\\\\-----------------/////----
+//----------------------------------------------------------------------\\\\\---------------/////-----
+//-----------------------------------------------------------------------\\\\\-------------/////------
+//------------------------------------------------------------------------\\\\\-----------/////-------
+//-------------------------------------------------------------------------\\\\\---------/////--------
+//--------------------------------------------------------------------------\\\\\-------/////---------
+//---------------------------------------------------------------------------\\\\\-----/////----------
+//----------------------------------------------------------------------------\\\\\___/////-----------
+//-----------------------------------------------------------------------------\_________/------------
+//------------------------------------------------------------------------------\_______/-------------
