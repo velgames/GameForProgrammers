@@ -7,8 +7,10 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Reflection;
 
 using DefBot;
+using Definitions;
 
 namespace BotServer
 {
@@ -21,9 +23,12 @@ namespace BotServer
         static int port; //config
         static IPEndPoint ipEndPoint;
         static bool clientConnected;
-        static Bot[] Bots;
+        
         //----------------------------
-
+        // Config and vars
+        static List<Bot> Bots;
+        static List<string> dllBotPaths;
+        //----------------------------
         // Net Init vars ===================
         static int BotCount;
 
@@ -60,16 +65,55 @@ namespace BotServer
 
         static bool Init()
         {
+            dllBotPaths = new List<string>();
+            Bots = new List<Bot>();
             BotCount = 1;
-
-            Bots = new Bot[BotCount];
+            dllBotPaths.Add("MyBot.dll");
+            
+            
+            botLoad();
+            
 
             return true;
         }
 
+        static bool botLoad()
+        {
+            for (int i = 0; i < dllBotPaths.Count; i++)
+            {
+                try
+                {
+                    Assembly asemb = Assembly.LoadFrom(dllBotPaths[i]);
+                    var ClassTypes = from t in asemb.GetTypes() where t.IsClass && (t.GetMember("Bot") != null) select t;
+                    foreach (Type t in ClassTypes)
+                    {
+                        Bot tBot = (Bot)asemb.CreateInstance(t.FullName, true);
+                        //tBot.move();
+                        Bots.Add(tBot);
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    if (i < dllBotPaths.Count)
+                    {
+                        cout("filed load dll : " + dllBotPaths[i]);
+                    }
+                    else
+                    {
+                        cout("filed load dll : out of range");
+                    }
+                }
+            }
+
+            return true;
+        }
+
+
         static void Main(string[] args)
         {
-
+            Init();
+            Console.ReadLine();
         }
 
 

@@ -31,5 +31,8 @@ namespace Definitions
 
         // bot Actions Commands
         public const string BOT_ACTION_COMMAND_MOVETO = "MOVETO";
+        public const string BOT_ACTION_COMMAND_SLEEP = "ZALIP"; // BOT deside to do nothing and wait next tick
+
+        public const string BOT_ACTION_COMMAND_DIE = "DesideToDie";
     }
 }

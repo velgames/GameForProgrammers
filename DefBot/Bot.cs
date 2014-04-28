@@ -8,7 +8,7 @@ namespace DefBot
 {
     public class Bot
     {
-        protected string status;
+        protected string command = Vals.BOT_ACTION_COMMAND_SLEEP;
 
         public virtual void move()
         {
@@ -16,23 +16,26 @@ namespace DefBot
 
         public void goTo(int coordinate_x, int coordinate_y)
         {
-            status = Vals.BOT_ACTION_COMMAND_MOVETO + " " + coordinate_x.ToString() + " " + coordinate_y.ToString();
+            command = Vals.BOT_ACTION_COMMAND_MOVETO + " " + coordinate_x.ToString() + " " + coordinate_y.ToString();
             return;
         }
 
-        protected string Answer(string key)
+        public string Answer(string key)
         {
             if (key == Vals.KEY_TO_RUN_BOT)
             {
+                command = Vals.BOT_ACTION_COMMAND_SLEEP;
+
                 try
                 {
                     move();
                 }
                 catch (Exception ex)
                 {
+                    command = Vals.BOT_ACTION_COMMAND_DIE;
                     return Vals.SYSTEM_BOT_ERROR_WHILE_EXECUTE;
                 }
-                return status;
+                return command;
             }
             return Vals.SECURITY_ERROR_BOT_RUN;
         }

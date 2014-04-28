@@ -51,6 +51,10 @@
       <Project>{6F53271B-3D7D-482A-A465-C86336DB6385}</Project>
       <Name>Bot</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Definitions\Definitions.csproj">
+      <Project>{58DBBB98-D24C-43F1-BAC7-CFAF297E1FF1}</Project>
+      <Name>Definitions</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -8,9 +8,9 @@ namespace MyBot
 {
     public class MyBot : Bot
     {
-        public override void move()
+        override public void move()
         {
-            
+            Console.WriteLine("Hello, I am First workig Bot");
         }
     }
 }
