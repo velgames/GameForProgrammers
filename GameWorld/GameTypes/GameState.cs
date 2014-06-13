@@ -32,7 +32,7 @@ namespace GameWorld.GameTypes
             for (int i = 0; i < playersCount; i++)
             {
                 string name = strplayers[c];
-                int id = Convert.ToInt32(strplayers[c+1]);
+                int id = Convert.ToInt32(strplayers[c + 1]);
                 int x = Convert.ToInt32(strplayers[c + 2]);
                 int y = Convert.ToInt32(strplayers[c + 3]);
                 int playerRadius = Convert.ToInt32(strplayers[c + 4]);
@@ -53,6 +53,8 @@ namespace GameWorld.GameTypes
                 str += state.players[i].ID + sc;
                 str += state.players[i].position.x.ToString() + sc;
                 str += state.players[i].position.y.ToString() + sc;
+                str += state.players[i].currentSpeed.x.ToString() + sc;
+                str += state.players[i].currentSpeed.y.ToString() + sc;
                 str += state.players[i].radius + sc;
             }
             str += ";";

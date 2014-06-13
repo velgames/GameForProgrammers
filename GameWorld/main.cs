@@ -36,6 +36,8 @@ namespace GameWorld
 
         static Socket netCore;
         static StreamWriter logWriter;
+        static StreamWriter log;
+
 
         //-------- Game vars
         static GameState world; //Global state variable describes current game world state
@@ -44,34 +46,40 @@ namespace GameWorld
         {
             logTopWriter();
             tDebug();
-            if (receiveMsg() != "START")
+            if (receiveMsg() != Vals.NETWORK_COMMAND_START)
             {
-                sendMsg("EXIT");
-                cout("'START' is not received");
+                sendMsg(Vals.NETWORK_COMMAND_EXIT);
+                cout("'START' command is not received");
                 return false;
             }
+
+            sendMsg(Vals.NETWORK_COMMAND_OK);
+
             bool needWork = true;
             while (needWork)
             {
+                sendMsg(GameState.GetState(world)); // send gamestate
+                
                 string msg = receiveMsg();
-                if (msg == "END")
+                if (msg == Vals.NETWORK_COMMAND_END)
                 {
+                    needWork = false;
                     break;
                 }
                 if (!applyAction(msg))
                 {
                     //somthing happends, need write to error log
-                    sendMsg("EXIT");
-                    cout("applyAction fail '"+ msg +"'");
+                    sendMsg(Vals.NETWORK_COMMAND_EXIT);
+                    cout("applyAction fail '" + msg + "'");
                     return false;
                 }
                 
                 physics();
                 logStateWriter();
-                sendMsg("NEXT");
+                sendMsg(Vals.NETWORK_COMMAND_OK);
             }
 
-            logBotWriter();
+            logBotomWriter();
             return true;
         }
 
@@ -116,9 +124,14 @@ namespace GameWorld
                             world.players[k].acceleration.y = Math.Sin(Math.Atan(Math.Abs(world.players[k].position.y - y) / Math.Abs(world.players[k].position.x - x)) + Math.PI) * Physics.playerAccelerate;
                         }
 
-                        cout("player" + world.players[k].name + "moving to ("+x.ToString() + ";" + y.ToString()+")");
+                        //cout("player" + world.players[k].name + " moving to ("+x.ToString() + ";" + y.ToString()+")");
                         break;
+                    case Vals.BOT_ACTION_COMMAND_SLEEP :
+                        //cout("player desided do nothing");
+                    // do nothing
 
+
+                        break;
                     default:
                         
                         return false;
@@ -150,27 +163,7 @@ namespace GameWorld
             return true;
         }
 
-        static bool connectToCore()
-        {
-            try
-            {
-                // Connect to GameCore
-                cout("connecting to SynchroCore...");
-                String host = Dns.GetHostName();
-                IPAddress ipAddr = Dns.GetHostByName(host).AddressList[0];
-                ipEndPoint = new IPEndPoint(ipAddr, port);
-                handler = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                handler.Connect(ipEndPoint);
-                sendMsg (Vals.Net_Name_GameWorld);
-                cout(receiveMsg());
-            }
-            catch (Exception ex)
-            {
-                cout("Connection filed");
-                return false;
-            }
-            return true;
-        }
+        
 
         static bool configWriteDefault()
         {
@@ -217,13 +210,14 @@ namespace GameWorld
 
         static void tDebug()
         {
-            world.players[0].currentSpeed.x = 10;
-            world.players[0].position.x = 100;
-            world.players[0].position.y = 100;
+            //world.players[0].currentSpeed.x = 10;
+            //world.players[0].position.x = 100;
+            //world.players[0].position.y = 100;
         }
 
         static bool Init()
         {
+            //log = new StreamWriter("log.log", false);
             clientConnected = false;
             port = 11000;
             playersCount = 1;       ///////////NET WORK///////////
@@ -237,8 +231,8 @@ namespace GameWorld
             cout("loading config");
             if (!configLoad())
             {
-                return false;
                 cout("config load filed");
+                return false;
             }
 
             if (!connectToCore())
@@ -246,42 +240,87 @@ namespace GameWorld
                 return false;
             }
 
+
             if (!initNetwork())
             {
                 return false;
             }
+
             logWriter = new StreamWriter(logFileName,false);
+            
             return true;
         }
 
+        static bool connectToCore()
+        {
+            try
+            {
+                // Connect to GameCore
+                cout("connecting to SynchroCore...");
+                String host = Dns.GetHostName();
+                IPAddress ipAddr = Dns.GetHostByName(host).AddressList[0];
+                ipEndPoint = new IPEndPoint(ipAddr, port);
+                handler = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                handler.Connect(ipEndPoint);
+                sendMsg(Vals.NETWORK_NAME_GAMEWORLD);
+                cout(receiveMsg());
+            }
+            catch (Exception ex)
+            {
+                cout("Connection filed");
+                return false;
+            }
+            return true;
+        }
 
         /// <summary>
         /// Initing network config and init objects
         /// </summary>
         static bool initNetwork()
         {
+            cout("starting network init");
             try
             {
+
+                if (receiveMsg() != Vals.NETWORK_COMMAND_INIT)
+                {
+                    cout("network init command has not been received");
+                    return false;
+                }
+
                 //Init network vars
-                playersCount = Convert.ToInt32(receiveMsg());
-                cout("playersCount = " + playersCount.ToString());
+                cout("try to get tickcount");
                 tickCount = Convert.ToInt32(receiveMsg());
                 cout("tickCount = " + tickCount.ToString());
 
+                sendMsg(Vals.NETWORK_COMMAND_OK);
+                cout("Ok sent");
+
+                string players_string = receiveMsg();
+                cout("players string = " + players_string);
+
                 //Init players
-                for (int i = 0; i < playersCount; i++)
+                string[] players = players_string.Split(';');
+                
+                for (int i = 0; i < players.Length; i++)
                 {
-                    string name = receiveMsg();
-                    int id = Convert.ToInt32(receiveMsg());
-                    int x = Convert.ToInt32(receiveMsg());
-                    int y = Convert.ToInt32(receiveMsg());
-                    world.players.Add(new Player(new GamePoint(x, y), playerRadius, name, id));
-                    cout("player '" + name + "' with id='" + id.ToString() + "' added ");
+                    if (players[i].Length < 1)
+                    {
+                        continue;
+                    }
+
+                    Random rnd = new Random();
+                    
+                    string[] player = players[i].Split(' ');
+                    
+                    world.players.Add(new Player(new GamePoint(rnd.Next(worldWidthSize), rnd.Next(worldHeightSize)), playerRadius, player[0], Convert.ToInt32(player[1])));
+                    cout("Player has been add");
                 }
-                sendMsg("OK");
+                sendMsg(Vals.NETWORK_COMMAND_OK);
             }
             catch (Exception ex)
             {
+                cout("Error while network init");
                 return false;
             }
             return true;
@@ -297,15 +336,11 @@ namespace GameWorld
             }
         }
         
-        static bool cout(string msg)
-        {
-            Console.WriteLine(msg);
-            // logwrite(msg);
-            return true;
-        }
+        
 
         static void Main(string[] args)
         {
+            log = new StreamWriter("log.log", false);
             cout("GameWorld starting...");
             cout("Initing...");
             if (!Init())
@@ -337,8 +372,11 @@ namespace GameWorld
         static bool sendMsg(string msg)
         {
             byte[] bytes = Encoding.ASCII.GetBytes(msg);
+            //Thread.Sleep(Vals.VALUE_NETWORK_SYNC_PAUSETIME);
             handler.Send(bytes);
-            Thread.Sleep(100);
+            log.WriteLine("sent : " + msg);
+            log.Flush();
+            
             return true;
         }
 
@@ -346,6 +384,8 @@ namespace GameWorld
         {
             byte[] bytes = new byte[1024];
             int c = handler.Receive(bytes);
+            log.WriteLine("received : " + Encoding.ASCII.GetString(bytes, 0, c));
+            log.Flush();
             return Encoding.ASCII.GetString(bytes, 0, c);
         }
 
@@ -363,7 +403,7 @@ namespace GameWorld
             return true;
         }
 
-        static bool logBotWriter()
+        static bool logBotomWriter()
         {
             logWriter.WriteLine("[END]");
             return true;
@@ -373,6 +413,14 @@ namespace GameWorld
         {
             logWriter.WriteLine(GameState.GetState(world));
 
+            return true;
+        }
+
+        static bool cout(string msg)
+        {
+            Console.WriteLine(msg);
+            log.WriteLine(msg);
+            log.Flush();
             return true;
         }
     }

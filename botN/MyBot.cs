@@ -8,7 +8,7 @@ namespace MyBot
 {
     public class MyBot : Bot
     {
-        override public void move()
+        override public void move(Arena arena)
         {
             Console.WriteLine("Hello, I am First workig Bot");
         }

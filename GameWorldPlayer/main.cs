@@ -53,7 +53,6 @@ namespace GameWorldPlayer
                 buf = logReader.ReadLine();
                 if (buf == "[START CONFIG]")
                 {
-
                     return loadGameConfig();
                 }
 
@@ -132,7 +131,6 @@ namespace GameWorldPlayer
         static void closer()
         {
             logReader.Close();
-
         }
 
         static void WinInit()
@@ -150,10 +148,6 @@ namespace GameWorldPlayer
 
         static void Main()
         {
-            StreamWriter st= new StreamWriter("a.txt");
-            st.WriteLine("AA");
-            st.Close();
-
             init();
             Glut.glutInit();
             Glut.glutInitDisplayMode(Glut.GLUT_RGB | Glut.GLUT_DOUBLE);

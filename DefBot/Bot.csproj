@@ -48,6 +48,10 @@
       <Project>{58DBBB98-D24C-43F1-BAC7-CFAF297E1FF1}</Project>
       <Name>Definitions</Name>
     </ProjectReference>
+    <ProjectReference Include="..\GameWorld\GameWorld.csproj">
+      <Project>{32FA08D6-97BA-48F1-8F25-06023B5B53BA}</Project>
+      <Name>GameWorld</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

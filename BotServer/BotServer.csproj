@@ -8,7 +8,7 @@
     <ProjectGuid>{77B2BBB1-8654-40F3-9065-85093C0297F6}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BotServer</RootNamespace>
+    <RootNamespace>GameWorld</RootNamespace>
     <AssemblyName>BotServer</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
@@ -54,6 +54,10 @@
     <ProjectReference Include="..\Definitions\Definitions.csproj">
       <Project>{58DBBB98-D24C-43F1-BAC7-CFAF297E1FF1}</Project>
       <Name>Definitions</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GameWorld\GameWorld.csproj">
+      <Project>{32FA08D6-97BA-48F1-8F25-06023B5B53BA}</Project>
+      <Name>GameWorld</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

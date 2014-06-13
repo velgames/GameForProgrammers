@@ -18,6 +18,7 @@ namespace SynchroCore
         static int tickCount;
         static int tickCurrent;
         static int playerCount;
+        static string botsInitializationString;
 
 
         //----------- Config vars
@@ -64,42 +65,55 @@ namespace SynchroCore
             listener.Listen(10);
             cout("Server started at " + IP + ":"+port.ToString());
 
-            while (!botServerConnected && !worldConnected)
+            while (botServerConnected == false || worldConnected == false)
             {
                 Socket client = listener.Accept();
 
-                byte[] buf = new byte[20];
+                byte[] buf = new byte[25];
                 int count = client.Receive(buf);
                 string msg = Encoding.ASCII.GetString(buf, 0, count);
-                if (msg == Vals.Net_Name_GameWorld)
+                if (msg == Vals.NETWORK_NAME_GAMEWORLD)
                 {
                     world = client;
-                    world.SendTimeout = 5;
+                    //world.SendTimeout = 10;
                     worldConnected = true;
                     cout("world connected");
+                    sendToWorld(Vals.NETWORK_COMMAND_OK);
                 }
                 else
                 {
-                    if (msg == Vals.Net_Name_BotServer)
+                    if (msg == Vals.NETWORK_NAME_BOTSERVER)
                     {
                         botServer = client;
+                        //botServer.SendTimeout = 10;
                         botServerConnected = true;
                         cout("BotServer connected");
+                        sendToBotServer(Vals.NETWORK_COMMAND_OK);
                     }
                     else
                     {
-                        cout("WTF IS CONNECTED TO ME??!!!!! HEEELLLPPP!!! ITS OMG!!!!!");
+                        cout("WTF HAS BEEN CONNECTED TO ME??!!!!! HEEELLLPPP!!! IT'S OMG!!!!!");
                     }
                 }
             }
 
-            //Send to world init data
-            sendToWorld("init");
+            // Initialization of clients and sending and receiving data
+            Thread.Sleep(Vals.VALUE_NETWORK_SYNC_PAUSETIME);
+            
+            if (!InitBotServer())
+            {
+                listener.Close();
+                return false;
+            }
+            cout("BotServer inited [ok]");
+            cout("Starting init GameWorld");
             if (!initWorld())
             {
                 listener.Close();
                 return false;
             }
+            cout("GameWorld Inited [ok]");
+
             worker();
 
             //listener.Shutdown(SocketShutdown.Both);
@@ -110,16 +124,18 @@ namespace SynchroCore
         static bool sendToWorld(string msg)
         {
             byte[] bytes = Encoding.ASCII.GetBytes(msg);
+            //Thread.Sleep(Vals.VALUE_NETWORK_SYNC_PAUSETIME);
             world.Send(bytes);
-            Thread.Sleep(100);
+            
             return true;
         }
 
         static bool sendToBotServer(string msg)
         {
             byte[] bytes = Encoding.ASCII.GetBytes(msg);
+            //Thread.Sleep(Vals.VALUE_NETWORK_SYNC_PAUSETIME);
             botServer.Send(bytes);
-            Thread.Sleep(100);
+            
             return true;
         }
 
@@ -139,42 +155,83 @@ namespace SynchroCore
 
         static bool initWorld()
         {
+            sendToWorld(Vals.NETWORK_COMMAND_INIT);
+            cout("Init command sent to world [ok]");
+            
             //send vars
-            sendToWorld(playerCount.ToString());
-            sendToWorld(tickCount.ToString());
-            //Init players
-///// Need replace to talk with bots by network////////////////////////////////////////////---------------!!!!!!!!!!!!!!!!!!
-            for (int i = 0; i < playerCount; i++)
-            {
-                sendToWorld("player1");
-                sendToWorld((i+1*15).ToString());
-                sendToWorld("200");
-                sendToWorld("320");
-                cout("player1 sent");
-            }
 
-            if(receiveByWorld() != "OK")
+            sendToWorld(tickCount.ToString());
+            //cout("tick count sent [ok]");
+            receiveByWorld();
+
+            sendToWorld(botsInitializationString);
+
+            cout("bots string sent [ok]");
+            //Thread.Sleep(Vals.VALUE_NETWORK_SYNC_PAUSETIME);
+            receiveByWorld();
+
+            return true;
+        }
+
+        static bool InitBotServer()
+        {
+            sendToBotServer(Vals.NETWORK_COMMAND_INIT);
+
+            string botsStr = receiveByBotServer();
+            sendToBotServer(Vals.NETWORK_COMMAND_OK);
+            if (botsStr.Length < 3)
             {
+                cout("bad data received by BotServer while network init");
                 return false;
             }
+            else
+            {
+                cout(botsStr);
+                //Console.ReadLine();
+            }
+
+            botsInitializationString = botsStr;
             return true;
         }
 
         static bool worker()
         {
             sendToWorld("START");
+            
             while (tickCurrent < tickCount)
             {
-                sendToWorld("15 MOVETO 100 " + (300+tickCurrent).ToString()); // debug string
-                cout("sent to world '15 MOVETO 100 " + (300 + tickCurrent).ToString()+"'"); // debug
-                if (receiveByWorld() == "EXIT")
+                //sendToWorld("15 MOVETO 100 " + (300+tickCurrent).ToString()); // debug string
+                //cout("sent to world '15 MOVETO 100 " + (300 + tickCurrent).ToString()+"'"); // debug
+                receiveByWorld();
+                string state = receiveByWorld();
+                
+                if (state == "EXIT")
                 {
-                    cout("world sent me 'EXIT'");
+                    cout("gameWorld sent me 'EXIT'");
                     return false;
                 }
+
+                receiveByBotServer();
+
+                sendToBotServer(Vals.NETWORK_COMMAND_TICK);
+                receiveByBotServer();
+
+
+                sendToBotServer(state);
+                //receiveByBotServer();
+
+
+                string ans = receiveByBotServer();
+
+                sendToWorld(ans);
+
                 tickCurrent++;
+                cout("tick : " + tickCurrent.ToString());
             }
-            sendToWorld("END");
+            receiveByWorld();
+            sendToWorld(Vals.NETWORK_COMMAND_END);
+            receiveByWorld();
+            sendToBotServer(Vals.NETWORK_COMMAND_END);
             return true;
         }
 
@@ -189,6 +246,7 @@ namespace SynchroCore
             worldConnected = false;
             configFileName = "SynchroCoreConfig.ini";
             logFileName = "SynchroCoreLog.log";
+            botsInitializationString = "";
             port = 11000;
             tickCount = 3000;
             tickCurrent = 0;

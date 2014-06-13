@@ -11,6 +11,9 @@ using System.Reflection;
 
 using DefBot;
 using Definitions;
+using GameWorld.GameObjects;
+using GameWorld.GameTypes;
+using GameWorld;
 
 namespace BotServer
 {
@@ -28,9 +31,12 @@ namespace BotServer
         // Config and vars
         const string configFileName = "botServerConfig.conf";
         const string BotPathsFilePath = "bots.ini";
-        
+        static StreamWriter logWriter;
+
+
         static List<Bot> Bots;
         static List<string> dllBotPaths;
+        static string botsInitString;
 
         //----------------------------
         // Net Init vars ===================
@@ -39,6 +45,95 @@ namespace BotServer
 
 
         //----------------------------------
+
+        static bool run()
+        {
+            cout("Runed");
+            
+            bool stop = false;
+            while (!stop)
+            {
+                sendMsg(Vals.NETWORK_COMMAND_OK);
+                cout("Wait for command");
+                string command = receiveMsg();
+                sendMsg(Vals.NETWORK_COMMAND_OK);
+                //cout("command : " + command);
+                switch (command)
+                {
+                    case Vals.NETWORK_COMMAND_END:
+                        stop = true;
+                        break;
+
+                    case Vals.NETWORK_COMMAND_TICK:
+                        cout("Tick");
+                        string str = receiveMsg();
+                        
+                        string answer = tick(str);
+                        sendMsg(answer);
+
+                        break;
+
+                    default:
+                        cout("Wrong command " + command);
+                        break;
+                }
+            
+            }
+
+            return true;
+        }
+
+        static string tick(string state)
+        {
+            string answer = "";
+            for (int i = 0; i < Bots.Count; i++)
+            {
+                Arena arena = createArena(state, Bots[i].VSID);
+
+                string str = Bots[i].Answer(Vals.KEY_TO_RUN_BOT,arena);
+                if (str != Vals.BOT_ACTION_COMMAND_DIE && str != Vals.SYSTEM_BOT_ERROR_WHILE_EXECUTE && str != Vals.SECURITY_ERROR_BOT_RUN)
+                {
+                    answer += Bots[i].VSID.ToString() + " " + str + " ; ";
+                }
+                else
+                {
+                    Bots[i].diedWhileExecute = true;
+                }
+            }
+            int a = 0;
+            return answer;
+        }
+
+
+        static Arena createArena(string str,int ID)
+        {
+            Arena cArena = new Arena();
+            cArena.arenaSize = new GamePoint(1024, 768);
+            string[] space = str.Split(';');
+            string[] bots = space[0].Split(' ');
+            int t = 0;
+            for (int i = 0; i < Bots.Count; i++)
+            {
+                string name = bots[t];
+                int VSID = Convert.ToInt32( bots[t + 1]);
+                GamePoint p = new GamePoint(Convert.ToInt32( bots[t + 2]),Convert.ToInt32( bots[t + 3]));
+                GameDPoint s = new GameDPoint(Convert.ToDouble(bots[t + 4]),Convert.ToDouble(bots[t + 5]));
+                int r = Convert.ToInt32( bots[t + 6]);
+
+                if (VSID == Bots[i].VSID)
+                {
+                    cArena.Me = new ArenaPlayer(s, p, r);
+                }
+                else
+                {
+                    cArena.Players.Add(new ArenaPlayer(s, p, r));
+                }
+                t += 7;
+            }
+           
+            return cArena; 
+        }
+        
         static bool connectToCore()
         {
             try
@@ -50,7 +145,7 @@ namespace BotServer
                 ipEndPoint = new IPEndPoint(ipAddr, port);
                 handler = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 handler.Connect(ipEndPoint);
-                sendMsg(Vals.Net_Name_BotServer);
+                sendMsg(Vals.NETWORK_NAME_BOTSERVER);
                 cout(receiveMsg());
             }
             catch (Exception ex)
@@ -58,31 +153,89 @@ namespace BotServer
                 cout("Connection filed");
                 return false;
             }
+            cout("Connected");
             return true;
         }
 
         static bool disconnect()
         {
-
             return true;
         }
 
         static bool Init()
         {
+            port = 11000;
             dllBotPaths = new List<string>();
             Bots = new List<Bot>();
             BotCount = 1;
-            dllBotPaths.Add("MyBot.dll");
+            botsInitString = "";
+            dllBotPaths.Add("MyBot.dll"); // test debug
+            logWriter = new StreamWriter("botserver.log");
 
-            botLoad();
 
-            connectToCore();
+            botsLoad();
+            botsInit();
+
+
+            if (!connectToCore())
+            {
+                return false;
+            }
+
+            if (!netWorkInit())
+            {
+                cout("network init failed");
+                return false;
+            }
             
+            return true;
+        }
+
+        static bool netWorkInit()
+        {
+            cout("Network init started");
+            if (receiveMsg() != Vals.NETWORK_COMMAND_INIT)
+            {
+                cout("Init command not received or received error data");
+            }
+            else
+            {
+                cout("network init accepted");
+            }
+
+            sendMsg(botsInitString);
+            //cout("bots sent");
+            cout(receiveMsg());
+            cout("network init [ok]");
+            return true;
+        }
+
+        static bool botsInit()
+        {
+            cout("bots init");
+            string str = "";
+            /*
+            str = [name] [id]
+            */
+            for (int i = 0; i < Bots.Count; i++)
+            {
+                if(Bots[i].name == Vals.BOT_DEFAULT_NAME)
+                {
+                    Bots[i].name = Vals.BOT_DEFAULT_NAME  + (i+1).ToString();
+                }
+                str += Bots[i].name + " ";
+                Bots[i].VSID = (i + 1) * 10 / 3 * 1234; // generate id
+                str += Bots[i].VSID.ToString(); 
+                str += " ;";
+            }
+            botsInitString = str;
+            cout("bots init [ok]");
             return true;
         }
 
         static void readBotPaths()
         {
+            cout("read paths");
             if (!File.Exists(BotPathsFilePath))
             {
                 StreamWriter off = new StreamWriter(BotPathsFilePath);
@@ -101,6 +254,7 @@ namespace BotServer
                 }
             }
             str.Close();
+            cout("read paths [ok]");
         }
 
 
@@ -108,8 +262,9 @@ namespace BotServer
         /// Add bot dll files and create objects of user classes
         /// </summary>
         /// <returns> true or false depend on successful operation</returns>
-        static bool botLoad()
+        static bool botsLoad()
         {
+            cout("load bots");
             for (int i = 0; i < dllBotPaths.Count; i++)
             {
                 try
@@ -137,15 +292,24 @@ namespace BotServer
                     return false;
                 }
             }
-
+            cout("bots load [ok]");
             return true;
         }
 
-
         static void Main(string[] args)
         {
-            Init();
-            Console.ReadLine();
+            if (!Init())
+            {
+                cout("Initialiazing failed");
+
+            }
+            else
+            {
+                cout("initialized successful");
+            }
+            run();
+            Console.WriteLine("Press enter to exit");
+           // Console.ReadLine();
         }
 
         static bool configWriteDefault()
@@ -214,7 +378,8 @@ namespace BotServer
         static bool cout(string msg)
         {
             Console.WriteLine(msg);
-            
+            logWriter.WriteLine(msg);
+            logWriter.Flush();
             return true;
         }
     }
